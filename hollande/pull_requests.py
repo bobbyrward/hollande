@@ -14,14 +14,13 @@ class ListPullRequestsCommand(object):
     name = 'list-pull-requests'
 
     def run(self, args):
-        repo = app().github.repository('inmar', 'dpn_web_services')
+        repo = Repository(args.repo)
 
-        for pr in repo.iter_pulls(state='open'):
-            print(pr.title)
+        for pr in repo.gh3_repo.iter_pulls(state='open'):
+            print('{}: {}'.format(pr.number, pr.title))
 
     def add_arguments(self, parser):
-        # parser.add_argument('token', help='The github token')
-        pass
+        parser.add_argument('repo', help='Repo name')
 
 
 class PullRequestReport(object):
