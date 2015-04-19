@@ -26,17 +26,17 @@ class ListPullRequestsCommand(object):
 
 class PullRequestReport(object):
     def __init__(self):
-        self.file_errors = defaultdict(dict)
-        self.error_count = 0
-        self.skip_errors = ['E501', 'W391']
+        self.file_violations = defaultdict(dict)
+        self.violation_count = 0
+        self.skip_violations = ['E501', 'W391']
 
     def error(self, line_number, offset, text, check):
-        for skip in self.skip_errors:
+        for skip in self.skip_violations:
             if text.startswith(skip):
                 return
 
-        self.file_errors[line_number][offset] = text
-        self.error_count += 1
+        self.file_violations[line_number][offset] = text
+        self.violation_count += 1
 
     def increment_logical_line(self):
         # self.counters['logical lines'] += 1
@@ -49,15 +49,17 @@ class PullRequestReport(object):
         return 0
 
 
-def remove_preexisting_errors(base_file, base_file_errors, pr_file, pr_file_errors):
-    # Remove all errors of the same type at the same location
-    for line_number, base_offset_errors in base_file_errors.iteritems():
-        for offset, error in base_offset_errors.iteritems():
-            if line_number in pr_file_errors:
-                if offset in pr_file_errors[line_number]:
-                    if error == pr_file_errors[line_number][offset]:
-                        del pr_file_errors[line_number][offset]
-                        pr_report.error_count -= 1
+def remove_preexisting_violations(base_file, base_file_violations, pr_file, pr_file_violations):
+    # Remove all violations of the same type at the same location
+    for line_number, base_offset_violations in base_file_violations.iteritems():
+        for offset, violation in base_offset_violations.iteritems():
+            # First check that the violation exists at the same place
+            if line_number in pr_file_violations:
+                if offset in pr_file_violations[line_number]:
+                    if violation == pr_file_violations[line_number][offset]:
+                        del pr_file_violations[line_number][offset]
+                        pr_report.violation_count -= 1
+
 
 
 @CommandRegistry.register
@@ -93,8 +95,8 @@ class LintPullRequestCommand(object):
             pr_checker.check_all()
 
             if pr_file.status == 'added':
-                if pr_report.error_count:
-                    self.print_file_violations(pr_file.filename, pr_report.file_errors)
+                if pr_report.violation_count:
+                    self.print_file_violations(pr_file.filename, pr_report.file_violations)
             else:
                 base_lines = [
                     x + '\n' for x in repo.blob(repo.get_file_hash_from_tree(base_tree, pr_file.filename).sha).decoded.split('\n')
@@ -108,23 +110,23 @@ class LintPullRequestCommand(object):
                 )
                 base_checker.check_all()
 
-                remove_preexisting_errors(
+                remove_preexisting_violations(
                     base_lines,
-                    base_report.file_errors,
+                    base_report.file_violations,
                     pr_lines,
-                    pr_report.file_errors,
+                    pr_report.file_violations,
                 )
 
-                if pr_report.error_count:
-                    self.print_file_violations(pr_file.filename, pr_report.file_errors)
+                if pr_report.violation_count:
+                    self.print_file_violations(pr_file.filename, pr_report.file_violations)
 
     def print_file_violations(self, filename, file_violations):
-        for line_number, offset_errors in file_violations.iteritems():
-            for offset, error in offset_errors.iteritems():
-                self.print_violation(filename, line_number, offset, error)
+        for line_number, offset_violations in file_violations.iteritems():
+            for offset, violation in offset_violations.iteritems():
+                self.print_violation(filename, line_number, offset, violation)
 
-    def print_violation(self, filename, line_number, offset, error):
-        print('{}:{}:{}: {}'.format(filename, line_number, offset, error))
+    def print_violation(self, filename, line_number, offset, violation):
+        print('{}:{}:{}: {}'.format(filename, line_number, offset, violation))
 
     def add_arguments(self, parser):
         parser.add_argument('repo', help='Repo name')
