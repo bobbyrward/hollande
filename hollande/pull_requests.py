@@ -6,7 +6,6 @@ from collections import defaultdict
 
 from .commands.registry import CommandRegistry
 from .repository import Repository
-from .application import app
 
 
 @CommandRegistry.register
@@ -100,7 +99,6 @@ class LintPullRequestCommand(object):
             if extension != '.py':
                 continue
 
-            pr_file_blob = repo.blob(pr_file.sha)
             pr_lines = [
                 x + '\n' for x in repo.blob(pr_file.sha).decoded.split('\n')
             ]
