@@ -1,13 +1,12 @@
 import unittest
 
-from ..pull_requests import PullRequestReport
+from ..linting import PullRequestReport
 
 
 class TestPullRequestReport(unittest.TestCase):
     def test_normal_usage(self):
         pr_report = PullRequestReport()
         pr_report.init_file('filename.ext', ['1', '2', '3'], None, None)
-        pr_report.increment_logical_line()
         pr_report.error(1, 25, 'A ERROR! ERROR! ERROR!', None)
         pr_report.error(2, 24, 'B ERROR! ERROR! ERROR!', None)
         pr_report.error(3, 23, 'C ERROR! ERROR! ERROR!', None)
