@@ -24,7 +24,8 @@ Linters with possible support:
 ## Setup
 
 First create a personal access token on the account you want hollande to access github with.
-The token can be generated [here](https://github.com/settings/applications).
+The token can be generated [here](https://github.com/settings/applications).  It requires
+only the repo and user roles.
 
 Install hollande:
 ```
