@@ -1,9 +1,12 @@
-from collections import defaultdict
+import os.path
+import collections
+
+import pep8
 
 
 class PullRequestReport(object):
     def __init__(self):
-        self.file_violations = defaultdict(dict)
+        self.file_violations = collections.defaultdict(dict)
         self.violation_count = 0
         self.skip_violations = ['E501', 'W391']
 
@@ -57,3 +60,59 @@ def remove_preexisting_violations(base_file, base_report, pr_file, pr_report):
                 if base_file[line_number] == pr_file[offset_match]:
                     del pr_report.violations[offset_match][offset]
                     pr_report.violation_count -= 1
+
+
+def lint_python_file(repository, base_tree, pr_file):
+    # TODO: Need to add logic for deleted files but need to see what the status for that is
+    pr_lines = repository.get_blob_as_lines(pr_file.sha)
+
+    pr_report = PullRequestReport()
+    pr_checker = pep8.Checker(
+        filename=pr_file.filename,
+        lines=pr_lines,
+        report=pr_report,
+    )
+    pr_checker.check_all()
+
+    if pr_file.status == 'modified':
+        base_lines = repository.get_blob_as_lines(
+            repository.get_file_hash_from_tree(base_tree, pr_file.filename).sha
+        )
+
+        base_report = PullRequestReport()
+        base_checker = pep8.Checker(
+            filename=pr_file.filename,
+            lines=base_lines,
+            report=base_report,
+        )
+        base_checker.check_all()
+
+        remove_preexisting_violations(
+            base_lines,
+            base_report,
+            pr_lines,
+            pr_report,
+        )
+
+    return pr_report
+
+
+def lint_pull_request(repository, pull_request_number):
+    pr = repository.get_pull_request(pull_request_number)
+    base_tree = repository.get_tree_from_commit(pr.base.sha)
+
+    reports = {}
+
+    lint_dict = {
+        '.py': lint_python_file,
+    }
+
+    for pr_file in pr.iter_files():
+        _, extension = os.path.splitext(pr_file.filename)
+
+        if extension not in lint_dict:
+            continue
+
+        reports[pr_file.filename] = lint_dict[extension](repository, base_tree, pr_file)
+
+    return reports

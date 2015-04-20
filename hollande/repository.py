@@ -49,3 +49,14 @@ class Repository(object):
     @property
     def active_pull_requests(self):
         return self.gh3_repo.iter_pulls(state='open')
+
+    def get_tree_from_commit(self, commit_sha):
+        return self.gh3_repo.tree(
+            self.gh3_repo.git_commit(commit_sha).tree.sha,
+        )
+
+    def get_pull_request(self, pr_number):
+        return self.gh3_repo.pull_request(pr_number)
+
+    def get_blob_as_lines(self, blob_sha):
+        return [x + '\n' for x in self.blob(blob_sha).decoded.split('\n')]
